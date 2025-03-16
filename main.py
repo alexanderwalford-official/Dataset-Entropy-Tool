@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import requests
 import statistics
+from datetime import datetime
 
 # IMPORTANT: Create a config.txt file containing your API keys with the same variable names.
 
@@ -29,7 +30,7 @@ standard_deviation_range = 10
 def main():
     print("Dataset Entropy Tool")
     print("Alexander Walford 2025")
-    print("\n\n")
+    print("\n")
     print("Please select an option from below:\n")
     print("1) Load and generate new dataset")
     usr_in = input()
@@ -48,28 +49,29 @@ def atmospheric_random_method(vals):
             lc_n = 0
             for k in vals:
                 if lc_n > lc and lc_n < lc + 10:
-                    standard_deviation_range_values_p.append(k)
+                    standard_deviation_range_values_p.append(float(k))
                 lc_n += 1
 
             # compute standard deviation (only if we have enough values)
             if len(standard_deviation_range_values_p) > 1:
-                upper_range_value = statistics.stdev(standard_deviation_range_values_p)
+                #!
+                upper_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_p])
             else:
-                upper_range_value = 0  # Default if not enough values
+                upper_range_value = 0
 
             # get previous 10 values
             standard_deviation_range_values_n = []
             lc_n = 0
             for k in vals:
                 if lc_n < lc and lc_n > lc - 10:
-                    standard_deviation_range_values_n.append(k)
+                    standard_deviation_range_values_n.append(float(k))
                 lc_n += 1
 
             # compute standard deviation (only if we have enough values)
             if len(standard_deviation_range_values_n) > 1:
-                lower_range_value = statistics.stdev(standard_deviation_range_values_n)
+                lower_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_n])
             else:
-                lower_range_value = 0  # Default if not enough values
+                lower_range_value = 0
 
             # fetch atmospheric noise and store result
             new_row = fetch_atmospheric_noise(1, lower_range_value, upper_range_value)
@@ -87,7 +89,15 @@ def load_csv():
     print("Dataset size: " + str(dataset_obj.size))
 
     for _, row in tqdm(dataset_obj.iterrows(), total=dt_size, desc="Processing rows"):
-        vals.append(row[COLUMN_NAME])
+
+        # check if needs to be specifically converted
+        if COLUMN_NAME == "time":
+            datetime_obj = datetime.strptime(row[COLUMN_NAME], "%Y-%m-%dT%H:%M:%S.%fZ")
+            timestamp = int(datetime_obj.timestamp())
+            vals.append(timestamp)
+           #vals.append(lambda x: int(row[COLUMN_NAME]))
+        else:
+            vals.append(float(row[COLUMN_NAME])) 
 
     print("\n\nPlease select your method of entropy:")
     print("1) Atmospheric Noise (random.org)")
