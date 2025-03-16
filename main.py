@@ -31,27 +31,17 @@ def main():
     print("Alexander Walford 2025")
     print("\n\n")
     print("Please select an option from below:\n")
-    print("1) Load dataset")
+    print("1) Load and generate new dataset")
     usr_in = input()
     if usr_in == "1":
         load_csv()
     return
 
-
-def load_csv():
-    dataset_obj = pd.read_csv(DATASET_FILE)
-    vals = []
-    dt_size = len(dataset_obj)
-
-    print("Dataset size: " + str(dataset_obj.size))
-
-    for _, row in tqdm(dataset_obj.iterrows(), total=dt_size, desc="Processing rows"):
-        vals.append(row[COLUMN_NAME])  # Fixed: Correctly access column value
-
+def atmospheric_random_method(vals):
     new_vals = []
     lc = 0
 
-    for i in vals:  # loop through values
+    for i in tqdm(vals, total=len(vals), desc="Generating new values"):
         if lc > 9:  # skip first 10 values
             # get next 10 values
             standard_deviation_range_values_p = []
@@ -87,6 +77,32 @@ def load_csv():
 
         lc += 1
 
+    return new_vals
+
+def load_csv():
+    dataset_obj = pd.read_csv(DATASET_FILE)
+    vals = []
+    dt_size = len(dataset_obj)
+
+    print("Dataset size: " + str(dataset_obj.size))
+
+    for _, row in tqdm(dataset_obj.iterrows(), total=dt_size, desc="Processing rows"):
+        vals.append(row[COLUMN_NAME])
+
+    print("\n\nPlease select your method of entropy:")
+    print("1) Atmospheric Noise (random.org)")
+
+    method = input()
+    new_vals = None
+
+    if method == "1":
+        # call the relevant method
+        new_vals = atmospheric_random_method(vals)
+    else:
+        print("[ X ] Invalid value.")
+        input()
+        load_csv()
+
     # print arrays
     print("Original dataset:")
     print(vals)
@@ -95,15 +111,46 @@ def load_csv():
     print(new_vals)
 
     # now convert the new_vals into a dataframe
+    new_vals_df = pd.DataFrame(new_vals)
 
     # save into new csv
+    new_vals_df.to_csv("output/random_values.csv", index=False)
 
     # compare original vals and new vals and generate a difference array
+    comparison_array = []
+    lc = 0
+    for old_val in vals:
+        comparison_array.append(float(old_val) - float(new_vals[lc]))
+        lc = lc + 1
+
+    # convert the comparisons array into a dataframe
+    comparison_array_df = pd.DataFrame(comparison_array)
 
     # save into a new csv
+    comparison_array_df.to_csv("output/comparisons.csv", index=False)
 
-    # perhaps render a line chart containing the original and new values using matplotlib
+    # render a line chart containing the original and new values using matplotlib
+    plt.figure(figsize=(10, 5)) # set the figure size
+    plt.plot(vals, label="Original Values")
+    plt.plot(new_vals, label="New Random Values")
+    plt.title('Dataset Entropy Filtering - Atmospheric Noise Method')
+    plt.xlabel('Iteration (sequential time)')
+    plt.ylabel(COLUMN_NAME)
+    plt.grid(True)
+    plt.savefig('output/new_old_rnd.png')
+    plt.show()
 
+    # render a line chart illustrating just the differences
+    plt.figure(figsize=(10, 5)) # set the figure size
+    plt.plot(comparison_array, label="DIfference")
+    plt.title('Dataset Entropy Filtering (difference) - Atmospheric Noise Method')
+    plt.xlabel('Iteration (sequential time)')
+    plt.ylabel('Random, STD RND Gen. Val')
+    plt.grid(True)
+    plt.savefig('output/diff_vals.png')
+    plt.show()
+
+    print("[ ! ] Done.")
 
 
 def fetch_atmospheric_noise(num_values, min_val, max_val):
@@ -135,9 +182,6 @@ def fetch_atmospheric_noise(num_values, min_val, max_val):
         print(f"Error fetching atmospheric noise: {e}. Using fallback Gaussian noise.")
         # fallback: generate noise locally as uniform
         return np.random.uniform(min_val, max_val, size=num_values)
-
-
-
 
 
 if __name__ == "__main__":
