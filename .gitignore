@@ -162,3 +162,4 @@ cython_debug/
 # ignore my secrets and / or logs
 *.txt
 *.csv
+*.png
