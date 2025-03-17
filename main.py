@@ -3,15 +3,18 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import requests
 import statistics
 from datetime import datetime
 import os
+from entropy_methods import *
 
-# IMPORTANT: Create a config.txt file containing your API keys with the same variable names.
+#! IMPORTANT: Create a config.txt file containing your API keys with the same variable names.
 
 
 def read_config(value):
+    """
+    Reads the config.txt file for the API keys required to operate the endpoints.
+    """
     filename="config.txt"
     with open(filename, "r") as file:
         for line in file:
@@ -22,17 +25,17 @@ def read_config(value):
 
 # load config
 DATASET_FILE = "2024-02-11__2024-04-08.csv"
-COLUMN_NAME = "time"
+COLUMN_NAME = "mag"
 RANDOM_API_KEY = read_config("RANDOM_API_KEY")
-QRNG_API_KEY = ""
+QUANTUM_API_KEY = read_config("QUANTUM_API_KEY")
 standard_deviation_range = 10 # WARNING: first x values will be removed
 
 # define if you would only like to use up to a certain value
 ONLY_USE_ENABLED = True
 ONLY_USE = 100
 
-method = ""
-
+#! do not modify these values
+method = "" # leave as blank
 
 def main():
     print("Dataset Entropy Tool")
@@ -51,7 +54,7 @@ def main():
         input()
         main()
 
-def atmospheric_random_method(vals):
+def api_random_method(vals, method):
     new_vals = []
     lc = 0
 
@@ -86,8 +89,12 @@ def atmospheric_random_method(vals):
                 lower_range_value = 0
 
             # fetch atmospheric noise and store result
-            new_row = int(fetch_atmospheric_noise(1, lower_range_value, upper_range_value))
-            new_vals.append(new_row)
+            if method == "Atmospheric":
+                new_row = int(fetch_atmospheric_noise(1, lower_range_value, upper_range_value, RANDOM_API_KEY))
+                new_vals.append(new_row)
+            elif method == "Quantum":
+                new_row = int(fetch_quantum_entropy(1, lower_range_value, upper_range_value, QUANTUM_API_KEY))
+                new_vals.append(new_row)
         else:
             # add blank value, first x will be removed anyway
             new_vals.append(0)
@@ -123,15 +130,6 @@ def gaussian_noise_method(vals):
 
     return new_vals
 
-def fetch_gaussian_noise(num_values, mean, stddev):
-    try:
-        # generate Gaussian noise
-        return np.random.normal(mean, stddev, num_values)
-    except Exception as e:
-        print(f"Error generating Gaussian noise: {e}.")
-        return np.random.normal(0, 1, num_values)  # fallback to standard normal distribution if error occurs
-
-
 def load_csv():
     dataset_obj = pd.read_csv(DATASET_FILE)
     vals = []
@@ -152,8 +150,10 @@ def load_csv():
             lc = lc + 1
 
     print("\n\nPlease select your method of entropy:")
-    print("1) Atmospheric Noise (random.org)")
-    print("2) Gaussian Noise")
+    print("1) Atmospheric Noise (API)")
+    print("2) Gaussian Noise (local)")
+    print("3) Quantum Noise (API)")
+    print("\n> ")
 
     method = input()
     new_vals = None
@@ -161,10 +161,13 @@ def load_csv():
     if method == "1":
         # call the relevant method
         method = "Atmospheric"
-        new_vals = atmospheric_random_method(vals)
+        new_vals = api_random_method(vals, method)
     elif method == "2":
         method = "Gaussian"
         new_vals = gaussian_noise_method(vals)
+    elif method == "3":
+        method = "Quantum"
+        new_vals = api_random_method(vals, method)
     else:
         print("[ X ] Invalid value.")
         input()
@@ -243,55 +246,6 @@ def load_csv():
     plt.show()
 
     print("[ ! ] Done.")
-
-
-def fetch_atmospheric_noise(num_values, min_val, max_val):
-    # ensure min_val and max_val are numbers
-    try:
-        min_val = int(min_val)
-        max_val = int(max_val)
-    except ValueError:
-        print(f"[ X ] Invalid range: min_val={min_val}, max_val={max_val}. They must be numeric.")
-        return np.random.uniform(0, 1, size=num_values)
-    
-    if min_val > max_val:
-        max_val_n = min_val
-        min_val_n = max_val
-    else:
-        max_val_n = max_val
-        min_val_n = min_val
-
-    #print(f"Using Random.org with min={min_val} and max={max_val}")
-
-    url = "https://api.random.org/json-rpc/4/invoke"
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "generateIntegers",
-        "params": {
-            "apiKey": RANDOM_API_KEY,
-            "n": num_values,
-            "min": min_val_n,
-            "max": max_val_n,
-            "replacement": True
-        },
-        "id": 42
-    }
-    # try to make the request
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        response.raise_for_status()
-        data = response.json()
-        # check for errors
-        if "error" in data:
-            raise ValueError(f"Random.org API error: {data['error']['message']}")
-        
-        return np.array(data['result']['random']['data'])
-
-    except (requests.RequestException, ValueError) as e:
-        print(f"Error fetching atmospheric noise: {e}. Using fallback Gaussian noise.")
-        # fallback: generate noise locally as uniform
-        return np.random.uniform(min_val, max_val, size=num_values)
 
 
 if __name__ == "__main__":
