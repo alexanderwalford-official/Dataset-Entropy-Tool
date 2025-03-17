@@ -25,7 +25,7 @@ def read_config(value):
 
 # load config
 DATASET_FILE = "2024-02-11__2024-04-08.csv"
-COLUMN_NAME = "mag"
+COLUMN_NAME = "time"
 RANDOM_API_KEY = read_config("RANDOM_API_KEY")
 QUANTUM_API_KEY = read_config("QUANTUM_API_KEY")
 standard_deviation_range = 10 # WARNING: first x values will be removed
@@ -226,7 +226,7 @@ def load_csv():
     # render a line chart containing the original and new values using matplotlib
     plt.plot(normalized_vals, label="Original Values")
     plt.plot(normalized_new_vals, label="New Random Values")
-    plt.title("Dataset Entropy Filtering - " + method + " Noise Method")
+    plt.title(COLUMN_NAME + "Dataset Entropy Filtering - " + method + " Noise Method")
     plt.xlabel('Iteration (sequential time)')
     plt.ylabel(COLUMN_NAME)
     plt.grid(True)
@@ -237,7 +237,7 @@ def load_csv():
     # render a line chart illustrating just the differences
     plt.figure(figsize=(10, 5)) # set the figure size
     plt.plot(comparison_array, label="Difference")
-    plt.title("Dataset Entropy Filtering (difference) - " + method + " Noise Method")
+    plt.title(COLUMN_NAME + "Dataset Entropy Filtering (difference) - " + method + " Noise Method")
     plt.xlabel('Iteration (sequential time)')
     plt.ylabel('Random, STD RND Gen. Val')
     plt.legend()
