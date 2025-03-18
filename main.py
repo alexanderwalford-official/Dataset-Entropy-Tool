@@ -7,6 +7,7 @@ import statistics
 from datetime import datetime
 import os
 from entropy_methods import *
+import math
 
 #! IMPORTANT: Create a config.txt file containing your API keys with the same variable names.
 
@@ -29,11 +30,17 @@ DATASET_FILE = "2024-02-11__2024-04-08.csv"
 COLUMN_NAME = "time"
 RANDOM_API_KEY = read_config("RANDOM_API_KEY")
 QUANTUM_API_KEY = read_config("QUANTUM_API_KEY")
-standard_deviation_range = 10 # WARNING: first x values will be removed
+
 
 # define if you would only like to use up to a certain value
 ONLY_USE_ENABLED = True
 ONLY_USE = 100
+standard_deviation_range = 10 # WARNING: first x values will be removed
+
+# will ignore the standard deviation range value, dynamic fitting
+AUTO_CORRELATION = True
+CORRELATION_MULTIPLIER = 2
+CORRELATION_SCALE = 100
 
 #! do not modify these values
 method = "" # leave as blank
@@ -55,18 +62,81 @@ def main():
         input()
         main()
 
+
+def correlation_sign(lst):
+    lst = np.array(lst, dtype=np.float64)
+    lst = (lst - np.mean(lst)) / np.std(lst)  # standardise to mean=0, std=1
+    corr = np.corrcoef(lst, np.arange(len(lst)))[0, 1]
+    if np.isnan(corr):
+        return 0  # handle NaN case
+    return corr * CORRELATION_SCALE  # scale
+
+def auto_correlation(vals):
+    """
+    Create a scaled automatic correlation array for the dataset for profiling the trend required.
+    """
+    print("[ ! ] Using automatic correlation profiling..")
+    lc_cor = 0
+    auto_correlation_array = []
+
+    for i in range(len(vals)):  # use index-based iteration
+        if lc_cor == standard_deviation_range - 1:
+            # ensure there are enough values to take the last x
+            start_idx = max(0, i - (standard_deviation_range - 1))  # avoid negative index
+            last_x_vals = vals[start_idx : i + 1]  # extract last x elements
+
+            if len(last_x_vals) < 2:  # correlation needs at least 2 points
+                print("[ ! ] Warning: Not enough values for correlation. Skipping.")
+                continue
+
+            # compute correlation
+            correlation_profile = correlation_sign(last_x_vals)  
+            
+            # check for NaN
+            if math.isnan(correlation_profile):
+                print("[ ! ] Warning: correlation_profile is NaN. Skipping this entry.")
+            else:
+                auto_correlation_array.append(standard_deviation_range + int(correlation_profile * CORRELATION_MULTIPLIER))
+            
+            lc_cor = 0  # reset counter
+        else:
+            lc_cor += 1
+
+    print("[ ! ] Automatic correlation array:")
+    print(auto_correlation_array)
+
+    return auto_correlation_array
+
 def api_random_method(vals, method):
+    global standard_deviation_range
     new_vals = []
+    auto_correlation_array = []
     lc = 0
 
-    for i in tqdm(vals, total=len(vals), desc="Generating new values"):
+    if AUTO_CORRELATION:
+        auto_correlation_array = auto_correlation(vals)
+        # render a line chart
+        plt.figure(figsize=(10, 5)) # set the figure size
+        plt.plot(auto_correlation_array, label="Value")
+        plt.title("Dataset Correlation Profile")
+        plt.xlabel('Iteration (sequential time)')
+        plt.ylabel('Correlation Amount')
+        plt.legend()
+        plt.grid(True)
+        plt.savefig('output/correlation.png')
+        plt.show()
+
+    for i in tqdm(vals, total=len(vals), desc="Generating new values using " + method + " noise"):
         if lc > standard_deviation_range - 1: # problem is that first 10 values are not being generated as 10 values are required for standard deviation
             # get next x values
             standard_deviation_range_values_p = []
             lc_n = 0
             for k in vals:
                 if lc_n > lc and lc_n < lc + standard_deviation_range:
-                    standard_deviation_range_values_p.append(float(k))
+                    if AUTO_CORRELATION:
+                        standard_deviation_range_values_p.append(float(k + auto_correlation_array[int(lc_n / 10)]))
+                    else:
+                        standard_deviation_range_values_p.append(float(k))
                 lc_n += 1
 
             # compute standard deviation (only if we have enough values)
@@ -80,7 +150,10 @@ def api_random_method(vals, method):
             lc_n = 0
             for k in vals:
                 if lc_n < lc and lc_n > lc - standard_deviation_range:
-                    standard_deviation_range_values_n.append(float(k))
+                    if AUTO_CORRELATION:
+                        standard_deviation_range_values_n.append(float(k + auto_correlation_array[int(lc_n / 10)]))
+                    else:
+                        standard_deviation_range_values_n.append(float(k))
                 lc_n += 1
 
             # compute standard deviation (only if we have enough values)
