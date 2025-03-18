@@ -227,6 +227,7 @@ def load_csv():
     print("1) Atmospheric Noise (API)")
     print("2) Gaussian Noise (local)")
     print("3) Quantum Noise (API)")
+    print("4) Atmospheric & Quantum (API)") # double pass
     print("\n> ")
 
     method = input()
@@ -242,6 +243,13 @@ def load_csv():
     elif method == "3":
         method = "Quantum"
         new_vals = api_random_method(vals, method)
+    elif (method == "4"):
+        method = "Atmospheric"
+        new_vals = api_random_method(vals, method)
+        method = "Quantum"
+        new_vals2 = api_random_method(vals, method)
+        method = "Atmospheric Quantum"
+
     else:
         print("[ X ] Invalid value.")
         input()
@@ -272,8 +280,11 @@ def load_csv():
     comparison_array = []
     lc = 0
     for old_val in vals:
-        if lc < len(new_vals):
-            comparison_array.append(float(old_val) - float(new_vals[lc]))
+        if lc < len(new_vals):            
+            if method == "Atmospheric Quantum":
+                comparison_array.append(float(old_val) - float(new_vals[lc]) - float(new_vals2[lc]))
+            else:
+                comparison_array.append(float(old_val) - float(new_vals[lc]))
         else:
             print("[ X ] Invalid length, new and old do not match.")
             comparison_array.append(float(old_val))
@@ -312,6 +323,7 @@ def load_csv():
     plt.figure(figsize=(10, 5)) # set the figure size
     plt.plot(comparison_array, label="Difference")
     plt.title(COLUMN_NAME.title() + " Dataset Entropy Filtering (difference) - " + method + " Noise Method")
+    plt.axhline(y=np.mean(comparison_array), color='red', linestyle='--', linewidth=2, label="Average")
     plt.xlabel('Iteration (sequential time)')
     plt.ylabel('Random, STD RND Gen. Val')
     plt.legend()
