@@ -10,6 +10,7 @@ from entropy_methods import *
 
 #! IMPORTANT: Create a config.txt file containing your API keys with the same variable names.
 
+#! TODO: Implement some kind of correlation detection and attempt to adjust the standard deviation range dynamically for each row.
 
 def read_config(value):
     """
@@ -226,7 +227,7 @@ def load_csv():
     # render a line chart containing the original and new values using matplotlib
     plt.plot(normalized_vals, label="Original Values")
     plt.plot(normalized_new_vals, label="New Random Values")
-    plt.title(COLUMN_NAME + "Dataset Entropy Filtering - " + method + " Noise Method")
+    plt.title(COLUMN_NAME.title() + " Dataset Entropy Filtering - " + method + " Noise Method")
     plt.xlabel('Iteration (sequential time)')
     plt.ylabel(COLUMN_NAME)
     plt.grid(True)
@@ -237,7 +238,7 @@ def load_csv():
     # render a line chart illustrating just the differences
     plt.figure(figsize=(10, 5)) # set the figure size
     plt.plot(comparison_array, label="Difference")
-    plt.title(COLUMN_NAME + "Dataset Entropy Filtering (difference) - " + method + " Noise Method")
+    plt.title(COLUMN_NAME.title() + " Dataset Entropy Filtering (difference) - " + method + " Noise Method")
     plt.xlabel('Iteration (sequential time)')
     plt.ylabel('Random, STD RND Gen. Val')
     plt.legend()
