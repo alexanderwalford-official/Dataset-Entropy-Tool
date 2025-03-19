@@ -96,7 +96,7 @@ def auto_correlation(vals):
             if math.isnan(correlation_profile):
                 print("[ ! ] Warning: correlation_profile is NaN. Skipping this entry.")
             else:
-                auto_correlation_array.append(standard_deviation_range + int(correlation_profile * CORRELATION_MULTIPLIER))
+                auto_correlation_array.append(int(correlation_profile * CORRELATION_MULTIPLIER))
             
             lc_cor = 0  # reset counter
         else:
