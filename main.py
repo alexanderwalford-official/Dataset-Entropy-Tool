@@ -41,6 +41,8 @@ standard_deviation_range = 10 # WARNING: first x values will be removed
 AUTO_CORRELATION = True
 CORRELATION_MULTIPLIER = 2
 CORRELATION_SCALE = 100
+SHOW_CORRELATION_GRAPH = False
+DEVIATION_METHOD = "bayesian" # options: std, mad, bayesian
 
 #! do not modify these values
 method = "" # leave as blank
@@ -124,7 +126,10 @@ def api_random_method(vals, method):
         plt.legend()
         plt.grid(True)
         plt.savefig('output/correlation.png')
-        plt.show()
+        if SHOW_CORRELATION_GRAPH:
+            plt.show()
+        else:
+            plt.close()
 
     for i in tqdm(vals, total=len(vals), desc="Generating new values using " + method + " noise"):
         if lc > standard_deviation_range - 1: # problem is that first 10 values are not being generated as 10 values are required for standard deviation
@@ -141,7 +146,16 @@ def api_random_method(vals, method):
 
             # compute standard deviation (only if we have enough values)
             if len(standard_deviation_range_values_p) > 1:
-                upper_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_p])
+                if DEVIATION_METHOD == "std":
+                    upper_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_p])
+                elif DEVIATION_METHOD == "mad":
+                    upper_range_value = mad_based_std([float(x) for x in standard_deviation_range_values_p])
+                elif DEVIATION_METHOD == "bayesian":
+                    upper_range_value = bayesian_std([float(x) for x in standard_deviation_range_values_p])
+                else:
+                    ## fallback to std
+                    print(["[ X ] Invalid standard deviation method. Using fallback method."])
+                    upper_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_p])
             else:
                 upper_range_value = 0
 
@@ -158,7 +172,15 @@ def api_random_method(vals, method):
 
             # compute standard deviation (only if we have enough values)
             if len(standard_deviation_range_values_n) > 1:
-                lower_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_n])
+                if DEVIATION_METHOD == "std":
+                    lower_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_n])
+                elif DEVIATION_METHOD == "mad":
+                    lower_range_value = mad_based_std([float(x) for x in standard_deviation_range_values_n])
+                elif DEVIATION_METHOD == "bayesian":
+                    lower_range_value = bayesian_std([float(x) for x in standard_deviation_range_values_n])
+                else:
+                    ## fall back to std
+                    lower_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_n])
             else:
                 lower_range_value = 0
 
@@ -243,13 +265,12 @@ def load_csv():
     elif method == "3":
         method = "Quantum"
         new_vals = api_random_method(vals, method)
-    elif (method == "4"):
+    elif method == "4":
         method = "Atmospheric"
         new_vals = api_random_method(vals, method)
         method = "Quantum"
         new_vals2 = api_random_method(vals, method)
         method = "Atmospheric Quantum"
-
     else:
         print("[ X ] Invalid value.")
         input()
@@ -324,8 +345,9 @@ def load_csv():
     plt.plot(comparison_array, label="Difference")
     plt.title(COLUMN_NAME.title() + " Dataset Entropy Filtering (difference) - " + method + " Noise Method")
     plt.axhline(y=np.mean(comparison_array), color='red', linestyle='--', linewidth=2, label="Average")
+    plt.axhline(y=0, color='green', linestyle='-', linewidth=2, label="Target")
     plt.xlabel('Iteration (sequential time)')
-    plt.ylabel('Random, STD RND Gen. Val')
+    plt.ylabel("Random, " + DEVIATION_METHOD.upper() + " RND Gen. Val")
     plt.legend()
     plt.grid(True)
     plt.savefig('output/diff_vals.png')

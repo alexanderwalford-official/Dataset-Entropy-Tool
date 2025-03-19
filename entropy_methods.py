@@ -1,6 +1,20 @@
 import numpy as np
 import requests
+from scipy.stats import invgamma
 
+def bayesian_std(data, prior=1):
+    n = len(data)
+    if n < 2:
+        return 0 
+    
+    sample_var = np.var(data, ddof=1)
+    posterior = invgamma(n / 2, scale=n * sample_var / 2 + prior)
+    return np.sqrt(posterior.mean()) 
+
+def mad_based_std(data):
+    med = np.median(data)
+    mad = np.median(np.abs(data - med))
+    return mad * 1.4826 
 
 def format_float_for_api(min_val, max_val):
     # ensure we don't have identical min and max
