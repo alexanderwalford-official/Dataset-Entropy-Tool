@@ -42,7 +42,7 @@ AUTO_CORRELATION = True
 CORRELATION_MULTIPLIER = 2
 CORRELATION_SCALE = 100
 SHOW_CORRELATION_GRAPH = False
-DEVIATION_METHOD = "bayesian" # options: std, mad, bayesian
+DEVIATION_METHOD = "bayesian" # options: std, mad, iqr, bayesian
 
 #! do not modify these values
 method = "" # leave as blank
@@ -150,6 +150,8 @@ def api_random_method(vals, method):
                     upper_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_p])
                 elif DEVIATION_METHOD == "mad":
                     upper_range_value = mad_based_std([float(x) for x in standard_deviation_range_values_p])
+                elif DEVIATION_METHOD == "iqr":
+                    upper_range_value = iqr_based_std([float(x) for x in standard_deviation_range_values_p])
                 elif DEVIATION_METHOD == "bayesian":
                     upper_range_value = bayesian_std([float(x) for x in standard_deviation_range_values_p])
                 else:
@@ -176,6 +178,8 @@ def api_random_method(vals, method):
                     lower_range_value = statistics.stdev([float(x) for x in standard_deviation_range_values_n])
                 elif DEVIATION_METHOD == "mad":
                     lower_range_value = mad_based_std([float(x) for x in standard_deviation_range_values_n])
+                elif DEVIATION_METHOD == "iqr":
+                    lower_range_value = iqr_based_std([float(x) for x in standard_deviation_range_values_n])
                 elif DEVIATION_METHOD == "bayesian":
                     lower_range_value = bayesian_std([float(x) for x in standard_deviation_range_values_n])
                 else:

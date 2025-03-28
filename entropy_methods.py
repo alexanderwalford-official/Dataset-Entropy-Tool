@@ -1,6 +1,8 @@
 import numpy as np
 import requests
 from scipy.stats import invgamma
+import pandas as pd
+from scipy.signal import welch
 
 def bayesian_std(data, prior=1):
     n = len(data)
@@ -15,6 +17,29 @@ def mad_based_std(data):
     med = np.median(data)
     mad = np.median(np.abs(data - med))
     return mad * 1.4826 
+
+def iqr_based_std(data):
+    """
+    Interquartile Range (IQR) Deviation
+    """
+    q75, q25 = np.percentile(data, [75, 25])
+    iqr = q75 - q25
+    return iqr / 1.349
+
+def ewmsd(data, alpha=0.3):  # alpha controls how fast old values decay
+    """
+    Exponentially Weighted Moving Standard Deviation (EWMSD)
+    """
+    return pd.Series(data).ewm(alpha=alpha).std().iloc[-1]
+
+def spectral_entropy_std(data):
+    """
+    Spectral Entropy-Based Standard Deviation
+    """
+    freqs, psd = welch(data, nperseg=len(data)//2)  # Power spectral density
+    psd_norm = psd / np.sum(psd)  # Normalize
+    entropy = -np.sum(psd_norm * np.log2(psd_norm + 1e-10))  # Shannon entropy
+    return np.sqrt(entropy) 
 
 def format_float_for_api(min_val, max_val):
     # ensure we don't have identical min and max
