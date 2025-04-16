@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,11 +25,10 @@ def read_config(value):
     return None 
 
 # load config
-DATASET_FILE = "2024-02-11__2024-04-08.csv"
-COLUMN_NAME = "time"
+DATASET_FILE = "forecast.csv"
+COLUMN_NAME = "unix_time"
 RANDOM_API_KEY = read_config("RANDOM_API_KEY")
 QUANTUM_API_KEY = read_config("QUANTUM_API_KEY")
-
 
 # define if you would only like to use up to a certain value
 ONLY_USE_ENABLED = True
@@ -246,7 +244,7 @@ def load_csv():
                 timestamp = int(datetime_obj.timestamp())
                 vals.append(timestamp)
             else:
-                vals.append(float(row[COLUMN_NAME])) 
+                vals.append(float(row[COLUMN_NAME].replace("[", "").replace("]", ""))) 
             lc = lc + 1
 
     print("\n\nPlease select your method of entropy:")
