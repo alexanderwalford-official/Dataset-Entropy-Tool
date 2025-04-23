@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 from entropy_methods import *
 import math
+from dataset_compare import compare_datasets
 
 #! IMPORTANT: Create a config.txt file containing your API keys with the same variable names.
 
@@ -26,7 +27,7 @@ def read_config(value):
 
 # load config
 DATASET_FILE = "forecast.csv"
-COLUMN_NAME = "unix_time"
+COLUMN_NAME = "time" # you may need to rename column unix_time to time in the csv file
 RANDOM_API_KEY = read_config("RANDOM_API_KEY")
 QUANTUM_API_KEY = read_config("QUANTUM_API_KEY")
 
@@ -240,9 +241,13 @@ def load_csv():
         if ONLY_USE_ENABLED and lc < ONLY_USE or ONLY_USE_ENABLED == False:
             # check if needs to be specifically converted
             if COLUMN_NAME == "time":
-                datetime_obj = datetime.strptime(row[COLUMN_NAME], "%Y-%m-%dT%H:%M:%S.%fZ")
-                timestamp = int(datetime_obj.timestamp())
-                vals.append(timestamp)
+                try:
+                    datetime_obj = datetime.strptime(row[COLUMN_NAME], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    timestamp = int(datetime_obj.timestamp())
+                    vals.append(timestamp)
+                except ValueError:
+                    vals.append(float(row[COLUMN_NAME].replace("[", "").replace("]", ""))) 
+                    print("[ X ] Error converting time value. Please check the format.")
             else:
                 vals.append(float(row[COLUMN_NAME].replace("[", "").replace("]", ""))) 
             lc = lc + 1
@@ -356,6 +361,9 @@ def load_csv():
     plt.show()
 
     print("[ ! ] Done.")
+
+    compare_datasets("0", COLUMN_NAME)
+    print("[ ! ] Comparing datasets..")
 
 
 if __name__ == "__main__":
